@@ -254,3 +254,85 @@ baseline 建立后，建议按以下顺序推进：
 - `scripts/evaluate_baseline.py --help` 可正常运行。
 - 使用 `RadioMLDataset` 取 `8` 个验证样本，可以正常完成 logits、softmax、top2 confidence 和 entropy 计算。
 - `python -m compileall src scripts` 通过。
+
+### 2026-05-28 混淆矩阵分析脚本
+
+本次新增 baseline 结果分析脚本，不修改训练脚本，不修改模型，不加入任何信号处理工具或智能体流程。
+
+新增脚本：
+
+- `scripts/analyze_confusion_matrix.py`
+
+脚本输入：
+
+- `results/baseline/test_predictions.csv`
+- `data/splits/split_meta.json`
+
+脚本功能：
+
+- 基于 `true_modulation` 和 `pred_modulation` 生成 test 集混淆矩阵。
+- 类别顺序优先使用 `split_meta.json` 中的 `idx_to_class`，保证与训练标签顺序一致。
+- 输出按真实类别行归一化的混淆矩阵。
+- 输出每个真实 modulation 最常被误判成的前 3 个类别。
+
+已生成文件：
+
+- `results/baseline/test_confusion_matrix.csv`
+- `results/baseline/test_confusion_matrix_normalized.csv`
+- `results/baseline/test_top3_misclassifications.csv`
+
+运行命令：
+
+```bash
+python scripts/analyze_confusion_matrix.py
+```
+
+### 2026-05-28 baseline 细粒度诊断脚本
+
+本次新增更细粒度的 baseline 诊断脚本，不修改训练脚本，不修改模型，不加入任何工具筛选逻辑。
+
+新增脚本：
+
+- `scripts/analyze_baseline_diagnostics.py`
+
+脚本输入：
+
+- `results/baseline/test_predictions.csv`
+- `data/splits/split_meta.json`
+
+脚本功能：
+
+- 输出按 `modulation + SNR` 分组的 test accuracy。
+- 按 SNR 难度分组生成混淆矩阵。
+- 同时输出按真实类别行归一化的 SNR group 混淆矩阵。
+- 输出每个 SNR group 中每个真实 modulation 最常见的 top3 误判类别。
+
+SNR 分组定义：
+
+- Hard: `SNR <= -10`
+- Medium: `-8 <= SNR <= -2`
+- Easy: `SNR >= 0`
+
+已生成文件：
+
+- `results/baseline/test_accuracy_by_modulation_snr.csv`
+- `results/baseline/test_confusion_matrix_hard.csv`
+- `results/baseline/test_confusion_matrix_medium.csv`
+- `results/baseline/test_confusion_matrix_easy.csv`
+- `results/baseline/test_confusion_matrix_hard_normalized.csv`
+- `results/baseline/test_confusion_matrix_medium_normalized.csv`
+- `results/baseline/test_confusion_matrix_easy_normalized.csv`
+- `results/baseline/test_top3_misclassifications_by_snr_group.csv`
+
+运行命令：
+
+```bash
+python scripts/analyze_baseline_diagnostics.py
+```
+
+验证结果：
+
+- Hard group 样本数为 `13200`。
+- Medium group 样本数为 `8800`。
+- Easy group 样本数为 `22000`。
+- 输出文件均已保存到 `results/baseline/`。
