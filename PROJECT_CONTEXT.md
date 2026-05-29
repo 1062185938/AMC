@@ -570,3 +570,72 @@ python scripts/analyze_tool_gains.py
 - 成功读取 `results/tool_screening/predictions_by_action.csv`。
 - 成功生成 `results/tool_analysis/tool_gain_by_modulation_snr_group.csv`。
 - `python -m compileall scripts/analyze_tool_gains.py` 通过。
+
+### 2026-05-29 Oracle 工具选择上界实验
+
+本次新增 Oracle 工具选择上界实验脚本，只读取已有 CSV，不重新运行模型，不重新运行 `screen_tools.py`，不修改训练、评估或工具筛选脚本。
+
+新增脚本：
+
+- `scripts/analyze_oracle_tool_policy.py`
+
+脚本输入：
+
+- `results/tool_analysis/tool_gain_by_modulation_snr_group.csv`
+- `results/tool_screening/predictions_by_action.csv`
+
+实验设定：
+
+- `no_process` 作为 baseline。
+- 暂时排除 `normalize_power`。
+- 在 `val` split 上，按 `(true_modulation, snr_group)` 选择 `action_accuracy` 最高的 action。
+- 允许 `no_process` 成为某个组的 best action，避免强制使用会降低效果的工具。
+- 这是 Oracle 上界实验，不是最终可部署方法。
+
+SNR 分组定义：
+
+- Hard: `SNR <= -10`
+- Medium: `-8 <= SNR <= -2`
+- Easy: `SNR >= 0`
+
+输出文件：
+
+- `results/tool_analysis/oracle_policy_by_modulation_snr_group.csv`
+- `results/tool_analysis/oracle_predictions.csv`
+- `results/tool_analysis/oracle_metrics_summary.csv`
+- `results/tool_analysis/oracle_accuracy_by_snr_group.csv`
+- `results/tool_analysis/oracle_accuracy_by_modulation.csv`
+
+`oracle_policy_by_modulation_snr_group.csv` 字段：
+
+- `true_modulation`
+- `snr_group`
+- `best_action`
+- `no_process_accuracy`
+- `best_action_accuracy`
+- `delta_accuracy`
+- `net_gain`
+- `total_samples`
+
+整体对比结果：
+
+- no_process accuracy: `0.54256818`
+- oracle accuracy: `0.59688636`
+- delta accuracy: `0.05431818`
+- baseline correct: `23873`
+- oracle correct: `26263`
+- total samples: `44000`
+- error_to_correct: `2498`
+- correct_to_error: `108`
+- net_gain: `2390`
+
+运行命令：
+
+```bash
+python scripts/analyze_oracle_tool_policy.py
+```
+
+验证结果：
+
+- 成功生成全部 Oracle 输出文件。
+- `python -m compileall scripts/analyze_oracle_tool_policy.py` 通过。
