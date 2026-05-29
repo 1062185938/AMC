@@ -509,3 +509,64 @@ python scripts/screen_tools.py --device cpu --max-samples 24 --batch-size 8 --ch
 ```bash
 python scripts/tool_sanity_check.py
 ```
+
+### 2026-05-29 工具收益离线分析脚本
+
+本次新增工具收益分析脚本，只读取 `screen_tools.py` 已经生成的逐样本预测结果，不重新运行模型，不重新运行工具筛选，不修改训练、评估或工具筛选脚本。
+
+新增脚本：
+
+- `scripts/analyze_tool_gains.py`
+
+脚本输入：
+
+- `results/tool_screening/predictions_by_action.csv`
+
+脚本输出：
+
+- `results/tool_analysis/tool_gain_by_modulation_snr_group.csv`
+
+分析粒度：
+
+- `action`
+- `true_modulation`
+- `snr_group`
+
+SNR 分组定义：
+
+- Hard: `SNR <= -10`
+- Medium: `-8 <= SNR <= -2`
+- Easy: `SNR >= 0`
+
+输出字段：
+
+- `action`
+- `true_modulation`
+- `snr_group`
+- `no_process_accuracy`
+- `action_accuracy`
+- `delta_accuracy`
+- `error_to_correct`
+- `correct_to_error`
+- `net_gain`
+- `total_samples`
+
+收益定义：
+
+- `no_process` 作为 baseline。
+- `delta_accuracy = action_accuracy - no_process_accuracy`。
+- `error_to_correct`: `no_process` 预测错，但当前 action 预测对的样本数。
+- `correct_to_error`: `no_process` 预测对，但当前 action 预测错的样本数。
+- `net_gain = error_to_correct - correct_to_error`。
+
+运行命令：
+
+```bash
+python scripts/analyze_tool_gains.py
+```
+
+验证结果：
+
+- 成功读取 `results/tool_screening/predictions_by_action.csv`。
+- 成功生成 `results/tool_analysis/tool_gain_by_modulation_snr_group.csv`。
+- `python -m compileall scripts/analyze_tool_gains.py` 通过。
