@@ -336,3 +336,97 @@ python scripts/analyze_baseline_diagnostics.py
 - Medium group 样本数为 `8800`。
 - Easy group 样本数为 `22000`。
 - 输出文件均已保存到 `results/baseline/`。
+
+### 2026-05-28 第一版工具筛选脚本
+
+本次新增第一版工具筛选实验脚本，不修改训练脚本，不修改 `evaluate_baseline.py`，不重新训练模型。
+
+新增脚本：
+
+- `scripts/screen_tools.py`
+
+脚本定位：
+
+- `evaluate_baseline.py` 继续只负责评估原始 baseline。
+- `screen_tools.py` 负责评估工具处理后的 IQ 信号。
+- 工具处理后的信号不保存为新数据集，只在推理时动态处理后直接送入已训练好的 `SimpleCNN1D`。
+- 当前只做工具筛选，不做智能体调度，不做工具选择策略学习。
+
+已实现固定 action：
+
+- `no_process`
+- `normalize_power`
+- `wavelet_weak`
+- `wavelet_strong`
+- `lowpass_mild`
+- `lowpass_strong`
+
+处理约束：
+
+- 输入单样本 IQ 形状为 `[2, 128]`。
+- `x[0]` 为 I 分量，`x[1]` 为 Q 分量。
+- 所有 action 输出形状保持为 `[2, 128]`。
+- 输出 dtype 转换或保持为 `float32`。
+- 不改变 label、sample_id、SNR、modulation。
+
+默认行为：
+
+- 默认 checkpoint 为 `checkpoints/debug_simple_cnn_best.pt`。
+- 默认 split 为 `val`。
+- 默认输出目录为 `results/tool_screening/`。
+- 默认对同一批 val 样本依次评估全部 6 个 action。
+
+输出文件：
+
+- `results/tool_screening/tool_screening_summary.csv`
+- `results/tool_screening/accuracy_by_snr_group.csv`
+- `results/tool_screening/accuracy_by_modulation.csv`
+- `results/tool_screening/predictions_by_action.csv`
+- `results/tool_screening/tool_screening_meta.json`
+
+`tool_screening_summary.csv` 字段：
+
+- `action`
+- `overall_accuracy`
+- `correct`
+- `total`
+- `error_to_correct`
+- `correct_to_error`
+- `net_gain`
+
+增益定义：
+
+- 先得到 `no_process` 对每个 `sample_id` 的 correct 状态。
+- `error_to_correct`: `no_process` 预测错，但当前 action 预测对的样本数。
+- `correct_to_error`: `no_process` 预测对，但当前 action 预测错的样本数。
+- `net_gain = error_to_correct - correct_to_error`。
+
+运行命令：
+
+```bash
+python scripts/screen_tools.py
+```
+
+服务器 GPU 完整工具筛选示例：
+
+```bash
+python scripts/screen_tools.py \
+  --device cuda \
+  --checkpoint-path checkpoints/debug_simple_cnn_best.pt \
+  --split val \
+  --batch-size 512 \
+  --output-dir results/tool_screening
+```
+
+本地验证：
+
+- 遵守本地 CPU 不运行完整训练或完整筛选的约束。
+- 仅使用 `--max-samples 24` 做 smoke test。
+- smoke test 已成功跑通 6 个 action。
+- 已生成 `results/tool_screening_smoke/` 下的测试输出。
+
+smoke test 命令：
+
+```bash
+python scripts/screen_tools.py --device cpu --max-samples 24 --batch-size 8 --checkpoint-path checkpoints/debug_simple_cnn_best.pt --output-dir results/tool_screening_smoke
+```
