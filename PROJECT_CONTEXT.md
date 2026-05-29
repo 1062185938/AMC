@@ -430,3 +430,82 @@ smoke test 命令：
 ```bash
 python scripts/screen_tools.py --device cpu --max-samples 24 --batch-size 8 --checkpoint-path checkpoints/debug_simple_cnn_best.pt --output-dir results/tool_screening_smoke
 ```
+
+### 2026-05-29 工具处理信号 sanity check 脚本
+
+本次新增工具处理前后信号变化检查脚本，不修改训练脚本，不修改 `evaluate_baseline.py`，不修改 `screen_tools.py`，不重新训练模型。
+
+新增脚本：
+
+- `scripts/tool_sanity_check.py`
+
+脚本定位：
+
+- 用于检查各个固定 action 处理前后的 IQ 信号变化是否合理。
+- 复用 `screen_tools.py` 中已有的 `apply_action` 和工具函数。
+- 不参与模型训练。
+- 不参与工具筛选结果统计。
+- 不保存处理后的完整 IQ 数据集。
+
+选样规则：
+
+- 从 `val` split 中选样。
+- 目标 modulation:
+  - `AM-SSB`
+  - `PAM4`
+  - `QAM64`
+  - `QPSK`
+  - `WBFM`
+  - `QAM16`
+- 每个 modulation 尽量选取 `SNR = -8, -2, 10` 的样本各 `1` 个。
+
+检查 action：
+
+- `no_process`
+- `normalize_power`
+- `wavelet_weak`
+- `wavelet_strong`
+- `lowpass_mild`
+- `lowpass_strong`
+
+输出文件：
+
+- `results/tool_sanity/tool_sanity_stats.csv`
+- `results/tool_sanity/figures/`
+
+`tool_sanity_stats.csv` 字段：
+
+- `action`
+- `sample_id`
+- `modulation`
+- `snr`
+- `mean_power_before`
+- `mean_power_after`
+- `power_ratio`
+- `max_abs_before`
+- `max_abs_after`
+- `std_before`
+- `std_after`
+- `std_ratio`
+- `l2_diff`
+- `has_nan`
+- `has_inf`
+
+频谱图内容：
+
+- original spectrum
+- processed spectrum
+
+验证结果：
+
+- 成功选取 `18` 个 val 样本。
+- 每个样本运行 `6` 个 action。
+- 共生成 `108` 行统计结果。
+- 共生成 `108` 张频谱图。
+- 所有结果保存到 `results/tool_sanity/`。
+
+运行命令：
+
+```bash
+python scripts/tool_sanity_check.py
+```
